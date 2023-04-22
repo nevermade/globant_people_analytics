@@ -4,6 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+snowflake-connector-python = "*"
+pandas = "*"
+flask = "*"
+flask-restful = "*"
+pyarrow = "==6.0.0"
+fastavro = "*"
 
 [dev-packages]
 
