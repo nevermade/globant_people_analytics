@@ -1,3 +1,4 @@
+from fastavro import writer, reader, parse_schema, schemaless_writer
 import pandas as pd
 from unicodedata import name
 from unittest import result
@@ -8,7 +9,6 @@ import os
 import datetime
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
-# from fastavro import writer, reader, parse_schema, schemaless_writer
 
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=os.environ.get("LOGLEVEL", "INFO"))
@@ -43,8 +43,7 @@ class SnowflakeOperations:
                             [df_valid_rows, row.to_frame().T], ignore_index=True)
                     else:
                         df_invalid_rows = pd.concat(
-                            [df_invalid_rows, row.to_frame().T], ignore_index=True)
-                df_valid_rows.to_csv('valid_rows.csv')
+                            [df_invalid_rows, row.to_frame().T], ignore_index=True)                
                 write_pandas(self.__conn, df_valid_rows,
                              destination, auto_create_table=True)
             logging.info(f"File {filename} was uploaded")
@@ -89,3 +88,51 @@ class SnowflakeOperations:
             return True
         except ValueError:
             return False
+
+    def export_to_avro(self, tablename, schema):
+        try:
+            cs = self.__conn.cursor()
+            cs.execute(f"USE DATABASE GLOBANT_PEOPLE_ANALYTICS")
+            cs.execute(f"USE SCHEMA PUBLIC")
+            query = f'SELECT * FROM "{tablename}"'
+            cs.execute(query)
+            results = cs.fetchall()
+            rows = []
+
+            # Parse to dict
+            
+            for row in results:
+                new_row = {}
+                for i in range(len(schema["fields"])):
+                    new_row[schema["fields"][i]["name"]] = row[i]
+                rows.append(new_row)
+            parsed_schema = parse_schema(schema)            
+            with open(f"output_files/{tablename}.avro", "wb") as out:
+                writer(out, parsed_schema, rows)
+            return 1
+        except Exception as e:
+            logging.error(e)
+            return 0
+        finally:
+            cs.close()
+
+    def restore_table_from_avro(self, tablename):
+        try:
+            cs = self.__conn.cursor()
+            cs.execute(f"USE DATABASE GLOBANT_PEOPLE_ANALYTICS")
+            cs.execute(f"USE SCHEMA PUBLIC")
+            cs.execute(f'DROP TABLE IF EXISTS "{tablename}"')
+            with open(f"uploads/{tablename}.avro", "rb") as fo:
+                avro_reader = reader(fo)
+                list = []
+                for record in avro_reader:
+                    list.append(record)
+            df = pd.DataFrame(list)
+            write_pandas(self.__conn, df, tablename, auto_create_table=True)
+
+            return 1
+        except Exception as e:
+            logging.error(e)
+            return 0
+        finally:
+            cs.close()

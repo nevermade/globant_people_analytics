@@ -9,7 +9,7 @@ pandas = "*"
 flask = "*"
 flask-restful = "*"
 fastavro = "*"
-pyarrow = "*"
+pyarrow = "==10.0.1"
 
 [dev-packages]
 autopep8 = "*"

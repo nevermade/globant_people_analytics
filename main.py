@@ -3,7 +3,7 @@ import os
 from hrpkg import data_operations
 import config
 import constants
-from flask import Flask, request, render_template
+from flask import Flask, request, send_file
 
 
 logging.basicConfig(format='%(asctime)s - %(message)s',
@@ -11,7 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
 app = Flask(__name__)
 
 
-@app.route("/upload_records/<entity>", methods=['GET', 'POST'])
+@app.route("/upload_data/<entity>", methods=['GET', 'POST'])
 def manage_upload(entity):
     if entity in constants.VALID_ENTITIES:
         if request.method == 'POST':
@@ -30,6 +30,34 @@ def manage_upload(entity):
             <!doctype html>
             <title>File Upload</title>
             <h1>Upload The file for: {entity}</h1>
+            <form method=post enctype=multipart/form-data>
+            <input type=file name=file>
+            <input type=submit value=Upload>
+            </form>
+        '''
+    return "<h2>Not valid entity name<h2>"
+
+
+@app.route("/backup/<entity>", methods=['GET'])
+def manage_backup(entity):
+    if entity in constants.VALID_ENTITIES:
+        snow_op.export_to_avro(entity, constants.AVRO_SCHEMA[entity])
+        return send_file(f'output_files/{entity}.avro', as_attachment=True)
+
+
+@app.route("/restore/<entity>", methods=['GET', 'POST'])
+def manage_restore(entity):
+    if entity in constants.VALID_ENTITIES:
+        if request.method == 'POST':
+            uploaded_file = request.files['file']
+            if uploaded_file.filename != '':
+                uploaded_file.save(f'uploads/{entity}.avro')
+                snow_op.restore_table_from_avro(entity)
+            return f"<h2>File was uploaded and table '{entity}' was restored succesfully<h2>"
+        return f'''
+            <!doctype html>
+            <title>Restore</title>
+            <h1>Upload The file for restoring: {entity}</h1>
             <form method=post enctype=multipart/form-data>
             <input type=file name=file>
             <input type=submit value=Upload>
