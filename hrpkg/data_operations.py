@@ -39,11 +39,14 @@ class SnowflakeOperations:
                 df_valid_rows = pd.DataFrame(columns=datatypes.keys())
                 for idx, row in chunk.iterrows():
                     if self.__is_valid_row(idx, row, datatypes):
-                        df_valid_rows = df_valid_rows.append(row)
+                        df_valid_rows = pd.concat(
+                            [df_valid_rows, row.to_frame().T], ignore_index=True)
                     else:
-                        df_invalid_rows = df_invalid_rows.append(row)
+                        df_invalid_rows = pd.concat(
+                            [df_invalid_rows, row.to_frame().T], ignore_index=True)
                 df_valid_rows.to_csv('valid_rows.csv')
-                write_pandas(self.__conn, df_valid_rows, destination, auto_create_table  = True)
+                write_pandas(self.__conn, df_valid_rows,
+                             destination, auto_create_table=True)
             logging.info(f"File {filename} was uploaded")
 
             return df_invalid_rows
@@ -55,21 +58,21 @@ class SnowflakeOperations:
 
     def __is_valid_row(self, idx, row, datatypes):
         if row.isnull().any():
-            row["message"] = f"Row #{idx}: Row has empty values"
+            row["message"] = f"Row #{idx+1}: Row has empty values"
             return False
-        for column, value in row.iteritems():
+        for column, value in row.items():
             if datatypes[column] == "int":
                 if not self.__is_integer(value):
                     logging.info(value)
-                    row["message"] = f"Row #{idx}: Column {column} has a non-integer value -{value}-"
+                    row["message"] = f"Row #{idx+1}: Column {column} has a non-integer value -{value}-"
                     return False
             elif datatypes[column] == "str":
                 if not isinstance(value, str):
-                    row["message"] = f"Row #{idx}: Column {column} has a non-str value -{value}-"
+                    row["message"] = f"Row #{idx+1}: Column {column} has a non-str value -{value}-"
                     return False
             elif datatypes[column] == "date":
                 if not self.__is_iso_date(value):
-                    row["message"] = f"Row #{idx}: Column {column} has a non-str value -{value}-"
+                    row["message"] = f"Row #{idx+1}: Column {column} has a non-str value -{value}-"
                     return False
         return True
 
