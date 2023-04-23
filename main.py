@@ -10,6 +10,11 @@ logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=os.environ.get("LOGLEVEL", "INFO"))
 app = Flask(__name__)
 
+"""
+This route receives a file, uploads it to the upload folder and then creates
+a table with the given name on Snowflake
+The name of the table is a parameter on the URL string.
+"""
 
 @app.route("/upload_data/<entity>", methods=['GET', 'POST'])
 def manage_upload(entity):
@@ -37,14 +42,19 @@ def manage_upload(entity):
         '''
     return "<h2>Not valid entity name<h2>"
 
-
+"""
+This route retrieves data from a Snowflake table a exports it to an avro file that can be downloaded.
+The name of the table is a parameter on the URL string.
+"""
 @app.route("/backup/<entity>", methods=['GET'])
 def manage_backup(entity):
     if entity in constants.VALID_ENTITIES:
         snow_op.export_to_avro(entity, constants.AVRO_SCHEMA[entity])
         return send_file(f'output_files/{entity}.avro', as_attachment=True)
 
-
+"""
+This route restores a table with a given name on Snowflake. It receives an avro file. The name of the table is a parameter on the URL string.
+"""
 @app.route("/restore/<entity>", methods=['GET', 'POST'])
 def manage_restore(entity):
     if entity in constants.VALID_ENTITIES:

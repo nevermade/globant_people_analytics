@@ -1,0 +1,7 @@
+*.avro
+*/*.avro
+.vscode/*
+Pipfile
+Pipfile.lock
+*/__pycache__
+__pycache__

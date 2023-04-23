@@ -13,6 +13,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 logging.basicConfig(format='%(asctime)s - %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S', level=os.environ.get("LOGLEVEL", "INFO"))
 
+"""
+This Class will handle all operations from the API rest calls.
+"""
+
 
 class SnowflakeOperations:
 
@@ -24,6 +28,7 @@ class SnowflakeOperations:
             account=credentials["account"]
         )
 
+    # This function will receiva a filename, a destination table and the datatypes for the table to validate based on the rules defined for each column-table.
     def load_csv_to_snowflake_table(self, filename,  destination, datatypes):
         cs = self.__conn.cursor()
 
@@ -43,7 +48,7 @@ class SnowflakeOperations:
                             [df_valid_rows, row.to_frame().T], ignore_index=True)
                     else:
                         df_invalid_rows = pd.concat(
-                            [df_invalid_rows, row.to_frame().T], ignore_index=True)                
+                            [df_invalid_rows, row.to_frame().T], ignore_index=True)
                 write_pandas(self.__conn, df_valid_rows,
                              destination, auto_create_table=True)
             logging.info(f"File {filename} was uploaded")
@@ -74,6 +79,7 @@ class SnowflakeOperations:
                     row["message"] = f"Row #{idx+1}: Column {column} has a non-str value -{value}-"
                     return False
         return True
+    # This function will return true if the provided string has a data iso_format
 
     def __is_iso_date(self, date_string):
         try:
@@ -81,6 +87,7 @@ class SnowflakeOperations:
             return True
         except ValueError:
             return False
+    # This function will return true if the provided value is an integer
 
     def __is_integer(self, int_string):
         try:
@@ -88,6 +95,7 @@ class SnowflakeOperations:
             return True
         except ValueError:
             return False
+    # This function will query data from snowflake and then export it as avro file.
 
     def export_to_avro(self, tablename, schema):
         try:
@@ -100,13 +108,13 @@ class SnowflakeOperations:
             rows = []
 
             # Parse to dict
-            
+
             for row in results:
                 new_row = {}
                 for i in range(len(schema["fields"])):
                     new_row[schema["fields"][i]["name"]] = row[i]
                 rows.append(new_row)
-            parsed_schema = parse_schema(schema)            
+            parsed_schema = parse_schema(schema)
             with open(f"output_files/{tablename}.avro", "wb") as out:
                 writer(out, parsed_schema, rows)
             return 1
@@ -116,6 +124,7 @@ class SnowflakeOperations:
         finally:
             cs.close()
 
+    # This function will restore a table using an avro file
     def restore_table_from_avro(self, tablename):
         try:
             cs = self.__conn.cursor()
