@@ -8,7 +8,6 @@ snowflake-connector-python = "*"
 pandas = "*"
 flask = "*"
 flask-restful = "*"
-pyarrow = "==6.0.0"
 fastavro = "*"
 
 [dev-packages]
