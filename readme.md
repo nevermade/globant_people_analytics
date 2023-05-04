@@ -23,7 +23,7 @@ This python project provides an API to run some ingestion data procceses. This p
 
 To execute the upload process on the server you need to call one of thefollowing endpoints:
 
-`http://127.0.0.1:3000/upload/<entity>`
+`http://127.0.0.1:3000/upload_data/<entity>`
 
 `http://127.0.0.1:3000/backup/<entity>`
 
